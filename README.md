@@ -1,7 +1,7 @@
 BlogPost
 ========
 
-[http://oott.me/](http://oott.me/) 我的博客文章markdown源码
+[https://www.doraemonext.com/](https://www.doraemonext.com/) 我的博客文章markdown源码
 
 **标题格式：**
 
