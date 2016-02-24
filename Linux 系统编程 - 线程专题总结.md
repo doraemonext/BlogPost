@@ -5,6 +5,8 @@
 ```cpp
 #include <pthread.h>
 int pthread_equal(pthread_t tid1, pthread_t tid2);
+
+// 返回值：相等则返回非 0 数值，否则返回 0
 ```
 	
 因为线程 ID 是用 `pthread_t` 数据类型来表示的，实现的时候可以用一个结构来代表 `pthread_t` 数据类型，所以可移植的操作系统实现不能把它作为整数处理。
@@ -16,6 +18,8 @@ int pthread_equal(pthread_t tid1, pthread_t tid2);
 ```cpp
 #include <pthread.h>
 pthread_t pthread_self(void);
+
+// 返回值：调用线程的线程 ID
 ```
 	
 线程可以通过 `pthread_self` 函数获得自身的线程 ID。
@@ -26,6 +30,8 @@ pthread_t pthread_self(void);
 #include <pthread.h>
 int pthread_create(pthread_t *restrict tidp, const pthread_attr_t *restrict attr,
                    void *(*start_rtn)(void *), void *restrict arg);
+                   
+// 返回值：成功返回 0，否则返回错误编号                   
 ```
 
 `pthread_create` 在调用失败时通常会返回错误码，而不是设置 `errno`（每个线程都提供 `errno` 的副本，但只是为了与使用 `errno` 的现有函数兼容）。
@@ -58,6 +64,8 @@ void pthread_exit(void *rval_ptr);
 ```cpp
 #include <pthread.h>
 int pthread_join(pthread_t thread, void **rval_ptr);
+
+// 返回值：成功返回 0，否则返回错误编号
 ```
 
 当线程调用 `pthread_join` 后，该调用线程将一直阻塞，直到指定的线程调用 `pthread_exit`、从启动例程中返回或者被取消。如果线程简单地从它的启动例程返回，`rval_ptr` 就包含返回码。如果线程被取消，由 `rval_ptr` 指定的内存单元就设置为 `PTHREAD_CANCELED`。
@@ -67,6 +75,8 @@ int pthread_join(pthread_t thread, void **rval_ptr);
 ```cpp
 #include <pthread.h>
 int pthread_cancel(pthread_t tid);
+
+// 返回值：成功返回 0，否则返回错误编号
 ```
 
 线程可以通过调用 `pthread_cancel` 函数来**请求取消同一进程中的其他线程**。
@@ -92,12 +102,51 @@ void pthread_cleanup_pop(int execute);
 当线程执行以下动作时，清理函数 `rtn` 是由 `pthread_cleanup_push` 函数调度的，调用时只有一个参数 `arg`：
 
 * 调用 `pthread_exit` 时
-* 响应取消请求时
+* 响应取消请求时f
 * 用非零 `execute` 参数调用 `pthread_cleanup_pop` 时
 
 如果 `execute` 参数设置为 `0`，清理函数将不被调用。不管发生上述哪种情况，`pthread_cleanup_pop` 都将删除上次 `pthread_cleanup_push` 调用建立的清理处理程序。
 
 **注意这些函数有一个限制，由于它们可以实现为宏，宏定义中可以包含字符 `{` 和 `}`，所以必须在线程相同的作用域中以配对的形式使用**。
 
-> 
+### 线程同步 - 互斥量
+
+可以使用 `pthread` 的互斥接口来保护数据，确保同一时间只有一个线程访问数据。
+
+互斥变量是用 `pthread_mutex_t` 数据类型表示的。在使用互斥变量以前，必须首先对它进行初始化，初始化分两种：
+
+* 设置为常量 `PTHREAD_MUTEX_INITIALIZER`（适用于静态分配的互斥量）
+* 通过调用 `pthread_mutex_init` 函数进行初始化
+
+如果动态分配了互斥量，则在释放内存前需要调用 `pthread_mutex_destroy`。
+
+```cpp
+#include <pthread.h>
+int pthread_mutex_init(pthread_mutex_t *restrict mutex,
+                       const pthread_mutexattr_t *restrict attr);
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
+
+// 所有函数的返回值：成功返回 0，否则返回错误编号。
+```
+
+如果使用默认的属性初始化互斥量，则只需要把 `attr` 设为 `NULL` 即可。
+
+```cpp
+#include <pthread.h>
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_trylock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+
+// 所有函数的返回值：成功返回 0，否则返回错误编号。
+```
+
+* 对互斥量进行加锁，需要调用 `pthread_mutex_lock`。如果互斥量已经上锁，那么调用线程将会阻塞直到互斥量被解锁
+* 对互斥量进行解锁，需要调用 `pthread_mutex_unlock`
+* 如果线程不希望被阻塞，那么使用 `pthread_mutex_trylock` 尝试对互斥量进行加锁
+    * 如果调用时互斥量处于未锁住状态，那么 `pthread_mutex_trylock` 将锁住互斥量，然后返回 `0`
+    * 如果调用时互斥量处于锁住状态，那么 `pthread_mutex_trylock` 将会失败，不能锁住互斥量，也是直接返回，返回值为 `EBUSY`
+
+
+
+
 
