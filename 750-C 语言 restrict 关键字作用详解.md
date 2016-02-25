@@ -6,21 +6,38 @@
 
 使用该关键字可以让编译器进行更好的代码优化，下面用具体示例来分析一下。
 
-```cpp
-#include <stdio.h>#include <stdlib.h>int calc(int *ptr1, int *ptr2){    *ptr1 = 10;    *ptr2 = 20;    return *ptr1;}int main(void){    int *a = malloc(sizeof(int));    int *b = malloc(sizeof(int));    printf("%d\n", calc(a, b));    return 0;}
-```
+    #include <stdio.h>
+    #include <stdlib.h>
+    
+    int calc(int *ptr1, int *ptr2)
+    {
+        *ptr1 = 10;
+        *ptr2 = 20;
+        return *ptr1;
+    }
+    
+    int main(void)
+    {
+        int *a = malloc(sizeof(int));
+        int *b = malloc(sizeof(int));
+        printf("%d\n", calc(a, b));
+        return 0;
+    }
 
 注意上面代码中的 `calc` 函数，如果不仔细看的话会想当然的认为该函数会一直返回 10，然后认为编译器优化代码的时候会直接将其优化为常量。但结果并不是这个样子，下面是我们使用
 
-```bash
-gcc -S test.c -O2
-```
+    gcc -S test.c -O2
 
 生成优化后的汇编代码，可以看到，`calc` 对应的汇编代码如下：
 
-```as
-calc:.LFB39:	.cfi_startproc	movl	$10, (%rdi)	movl	$20, (%rsi)	movl	(%rdi), %eax	ret	.cfi_endproc
-```
+    calc:
+    .LFB39:
+    	.cfi_startproc
+    	movl	$10, (%rdi)
+    	movl	$20, (%rsi)
+    	movl	(%rdi), %eax
+    	ret
+    	.cfi_endproc
 
 显然编译器并没有“聪明的”将返回值变为常量。为什么呢？
 
@@ -30,23 +47,30 @@ calc:.LFB39:	.cfi_startproc	movl	$10, (%rdi)	movl	$20, (%rsi)	movl	(%rdi), 
 
 接下来我们的 `calc` 函数的定义就变成了下面这个样子：
 
-```cpp
-int calc(int *restrict ptr1, int *restrict ptr2){    *ptr1 = 10;    *ptr2 = 20;    return *ptr1;}
-```
+    int calc(int *restrict ptr1, int *restrict ptr2)
+    {
+        *ptr1 = 10;
+        *ptr2 = 20;
+        return *ptr1;
+    }
 
 然后再使用
 
-```bash
-gcc -S test.c -std=c99 -O2
-```
+    gcc -S test.c -std=c99 -O2
 
 生成优化后的汇编代码（注意添加 `-std=c99`），可以看到，`calc` 新的对应的汇编代码如下：
 
-```as
-calc:.LFB23:	.cfi_startproc	movl	$10, (%rdi)	movl	$20, (%rsi)	movl	$10, %eax	ret	.cfi_endproc
-```
+    calc:
+    .LFB23:
+    	.cfi_startproc
+    	movl	$10, (%rdi)
+    	movl	$20, (%rsi)
+    	movl	$10, %eax
+    	ret
+    	.cfi_endproc
 
 现在编译器聪明的将返回语句优化为常量，进一步提升了效率。
 
 PS: 如果函数形参中的指针被 `restrict` 修饰，然后你又作死的传入了相同地址的指针且在函数中进行修改，那么编译器可能会对代码做出错误的优化。比如上面的 `calc` 函数指针形参经过 `restrict` 修饰后，我还是调用 `calc(a, a)` 这种的话，将仍然会返回值 10，而不是正确答案 20。
+
 
