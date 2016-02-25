@@ -146,7 +146,12 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex);
     * 如果调用时互斥量处于未锁住状态，那么 `pthread_mutex_trylock` 将锁住互斥量，然后返回 `0`
     * 如果调用时互斥量处于锁住状态，那么 `pthread_mutex_trylock` 将会失败，不能锁住互斥量，也是直接返回，返回值为 `EBUSY`
 
-
+```cpp
+#include <pthread.h>
+#include <time.h>
+int pthread_mutex_timedlock(pthread_mutex_t *restrict mutex,
+                            const struct timespec *restrict tsptr);
+```
 
 
 
