@@ -131,6 +131,8 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex);
 
 如果使用默认的属性初始化互斥量，则只需要把 `attr` 设为 `NULL` 即可。
 
+----------------------
+
 ```cpp
 #include <pthread.h>
 int pthread_mutex_lock(pthread_mutex_t *mutex);
@@ -146,12 +148,18 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex);
     * 如果调用时互斥量处于未锁住状态，那么 `pthread_mutex_trylock` 将锁住互斥量，然后返回 `0`
     * 如果调用时互斥量处于锁住状态，那么 `pthread_mutex_trylock` 将会失败，不能锁住互斥量，也是直接返回，返回值为 `EBUSY`
 
+-----------------------
+
 ```cpp
 #include <pthread.h>
 #include <time.h>
 int pthread_mutex_timedlock(pthread_mutex_t *restrict mutex,
                             const struct timespec *restrict tsptr);
+                            
+// 返回值：成功返回 0，否则返回错误编号。                            
 ```
 
+当线程试图获取一个已加锁的互斥量时，`pthread_mutex_timedlock` 互斥量原语允许绑定线程阻塞时间。
 
+`pthread_mutex_timedlock` 函数与 `pthread_mutex_lock` 是基本等价的，但是在达到超时时间值时，`pthread_mutex_timedlock` 不会对互斥量进行枷锁，而是返回错误码 `ETIMEDOUT`。
 
